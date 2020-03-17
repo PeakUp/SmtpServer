@@ -8,6 +8,7 @@ variables:
   solution: '**/*.sln'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
+  dotnetSdkVersion: '3.x'
 
 steps:
 - task: NuGetToolInstaller@1
@@ -18,6 +19,11 @@ steps:
   inputs:
     restoreSolution: '$(solution)'
 
+- task: UseDotNet@2
+  displayName: 'Use .Net Core SDK $(dotnetSdkVersion)'
+  inputs:
+    version: '$(dotnetSdkVersion)'
+
 - task: VSBuild@1
   displayName: 'Building Solution'
   inputs:
@@ -25,14 +31,15 @@ steps:
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
-- task: NuGetCommand@2
-  displayName: 'Packing NuGet packages'
+- task: DotNetCoreCLI@2
+  displayName: 'Packing nuget packages'
   inputs:
     command: 'pack'
     packagesToPack: '**/SmtpServer.csproj'
-    packDestination: '$(Build.ArtifactStagingDirectory)/nuget'
-    versioningScheme: 'off'
+    packDirectory: '$(Build.ArtifactStagingDirectory)/nuget'
+    nobuild: true
     includesymbols: true
+    versioningScheme: 'off'
 
 - task: NuGetCommand@2
   displayName: 'Push NuGet Packages to internal feed'

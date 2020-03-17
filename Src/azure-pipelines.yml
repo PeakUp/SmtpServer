@@ -1,0 +1,52 @@
+trigger:
+- peakup/release
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+  dotnetSdkVersion: '3.x'
+
+steps:
+- task: NuGetToolInstaller@1
+  displayName: 'Installking NuGet Tools'
+
+- task: NuGetCommand@2
+  displayName: 'Restoring solution packages'
+  inputs:
+    restoreSolution: '$(solution)'
+
+- task: UseDotNet@2
+  displayName: 'Use .Net Core SDK $(dotnetSdkVersion)'
+  inputs:
+    version: '$(dotnetSdkVersion)'
+
+- task: VSBuild@1
+  displayName: 'Building Solution'
+  inputs:
+    solution: '$(solution)'
+    platform: '$(buildPlatform)'
+    configuration: '$(buildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Packing nuget packages'
+  inputs:
+    command: 'pack'
+    packagesToPack: '**/SmtpServer.csproj'
+    packDirectory: '$(Build.ArtifactStagingDirectory)/nuget'
+    nobuild: true
+    includesymbols: true
+    versioningScheme: 'off'
+
+- task: NuGetCommand@2
+  displayName: 'Push NuGet Packages to internal feed'
+  inputs:
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+    nuGetFeedType: 'internal'
+    publishVstsFeed: '3fb38aa2-1fcf-4824-8988-b346e6a48ff8'
+    allowPackageConflicts: true
+
